@@ -1,0 +1,25 @@
+{
+  "name": "PR-808",
+  "version": "1.0.0",
+  "description": "Roland TR-808 in PureScript",
+  "repository": "https://github.com/houli/PR-808",
+  "author": "Eoin Houlihan",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "postinstall": "bower install",
+    "start": "pulp server",
+    "test": "pulp test",
+    "test:watch": "pulp -w test",
+    "build": "pulp build",
+    "build:watch": "pulp -w build",
+    "build:prod": "pulp build -O | uglifyjs -c -m -o app.js",
+    "repl": "pulp repl"
+  },
+  "devDependencies": {
+    "bower": "^1.8.0",
+    "pulp": "^11.0.0",
+    "purescript-psa": "^0.5.1",
+    "uglify-js": "^3.0.27"
+  }
+}
