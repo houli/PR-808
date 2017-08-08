@@ -24,15 +24,15 @@ data Sound = Clap
            | Shake
            | Snare
 
-derive instance genericSound ∷ Generic Sound _
-instance showSound ∷ Show Sound where
+derive instance genericSound :: Generic Sound _
+instance showSound :: Show Sound where
   show = genericShow
 
-fileName ∷ Sound → String
+fileName :: Sound -> String
 fileName s = "audio/" <> show s <> ".wav"
 
-playSound ∷ ∀ eff. Sound → Eff (howler ∷ Howl.HOWLER | eff) Unit
+playSound :: forall eff. Sound -> Eff (howler :: Howl.HOWLER | eff) Unit
 playSound s = do
   let file = fileName s
-  sound ← Howl.new (Howl.defaultProps { buffer = true, urls = [file] })
+  sound <- Howl.new (Howl.defaultProps { buffer = true, urls = [file] })
   Howl.play sound
