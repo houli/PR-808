@@ -1,5 +1,6 @@
 module Sound
   ( Sound(..)
+  , allSounds
   , playSound
   ) where
 
@@ -27,6 +28,9 @@ data Sound = Clap
 derive instance genericSound :: Generic Sound _
 instance showSound :: Show Sound where
   show = genericShow
+
+allSounds :: Array Sound
+allSounds = [Clap, Clave, Cowbell, Crash, HiHatClosed, HiHatOpen, HiTom, Kick, LowTom, MidTom, Rim, Shake, Snare]
 
 fileName :: Sound -> String
 fileName s = "audio/" <> show s <> ".wav"
