@@ -2,12 +2,18 @@ module Component.Step where
 
 import Prelude
 
+import Data.Lens (Lens, use, (%=))
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 
 type State = { on :: Boolean }
+
+on :: forall a b r. Lens { on :: a | r } { on :: b | r } a b
+on = prop (SProxy :: SProxy "on")
 
 data Query a = Toggle a
              | IsOn (Boolean -> a)
@@ -41,8 +47,7 @@ step =
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval = case _ of
     Toggle next -> do
-      H.modify $ \state -> state { on = not state.on }
+      on %= not
       pure next
     IsOn reply -> do
-      on <- H.gets _.on
-      pure $ reply on
+      reply <$> use on

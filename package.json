@@ -11,7 +11,7 @@
     "start": "pulp server",
     "test": "pulp test",
     "test:watch": "pulp -w test",
-    "build": "pulp build",
+    "build": "pulp build --to app.js",
     "build:watch": "pulp -w build",
     "build:prod": "pulp build -O | uglifyjs -c -m -o app.js",
     "repl": "pulp repl"
