@@ -1,5 +1,5 @@
 {
-  "name": "PR-808",
+  "name": "pr-808",
   "description": "Roland TR-808 in PureScript",
   "authors": [
     "Eoin Houlihan"
@@ -15,12 +15,13 @@
     "dist"
   ],
   "dependencies": {
-    "purescript-console": "^3.0.0",
-    "purescript-halogen": "^2.1.0",
-    "purescript-prelude": "^3.1.0",
-    "purescript-howler": "^0.4.0",
-    "purescript-generics-rep": "^5.2.0",
     "purescript-arrays": "^4.1.2",
+    "purescript-console": "^3.0.0",
+    "purescript-foldable-traversable": "^3.4.0",
+    "purescript-generics-rep": "^5.2.0",
+    "purescript-halogen": "^2.1.0",
+    "purescript-howler": "^0.4.0",
+    "purescript-prelude": "^3.1.0",
     "purescript-profunctor-lenses": "^3.4.0",
     "purescript-symbols": "^3.0.0"
   },

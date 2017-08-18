@@ -1,5 +1,5 @@
 {
-  "name": "PR-808",
+  "name": "pr-808",
   "version": "1.0.0",
   "description": "Roland TR-808 in PureScript",
   "repository": "https://github.com/houli/PR-808",
@@ -9,18 +9,20 @@
   "scripts": {
     "postinstall": "bower install",
     "start": "pulp server",
+    "repl": "pulp repl",
     "test": "pulp test",
     "test:watch": "pulp -w test",
     "build": "pulp build --to app.js",
-    "build:watch": "pulp -w build",
+    "build:watch": "pulp -w build --to app.js",
     "build:prod": "pulp build -O | uglifyjs -c -m -o app.js",
-    "repl": "pulp repl"
+    "deploy": "npm run build:prod && surge . pr-808.surge.sh"
   },
   "devDependencies": {
     "bower": "^1.8.0",
-    "pulp": "^11.0.0",
+    "pulp": "^11.0.2",
     "purescript": "^0.11.6",
     "purescript-psa": "^0.5.1",
+    "surge": "^0.19.0",
     "uglify-js": "^3.0.27"
   }
 }
