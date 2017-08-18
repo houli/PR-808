@@ -4,12 +4,14 @@ module Sound
   , playSound
   ) where
 
-import Prelude
-
 import Audio.Howler as Howl
+import Control.Bind (bind)
 import Control.Monad.Eff (Eff)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Semigroup ((<>))
+import Data.Show (class Show, show)
+import Data.Unit (Unit)
 
 data Sound = Clap
            | Clave
@@ -35,8 +37,8 @@ allSounds = [Clap, Clave, Cowbell, Crash, HiHatClosed, HiHatOpen, HiTom, Kick, L
 fileName :: Sound -> String
 fileName s = "audio/" <> show s <> ".wav"
 
-playSound :: forall eff. Sound -> Eff (howler :: Howl.HOWLER | eff) Unit
-playSound s = do
+playSound :: forall e. Sound -> Number -> Eff (howler :: Howl.HOWLER | e) Unit
+playSound s volume = do
   let file = fileName s
-  sound <- Howl.new (Howl.defaultProps { buffer = true, urls = [file] })
+  sound <- Howl.new (Howl.defaultProps { buffer = true, urls = [file], volume = volume })
   Howl.play sound

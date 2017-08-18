@@ -1,11 +1,17 @@
 module Component.Step where
 
-import Prelude
-
+import Control.Applicative (pure)
+import Control.Bind (discard)
+import Data.Function (const)
+import Data.Functor ((<$>))
+import Data.HeytingAlgebra (not)
 import Data.Lens (Lens, use, (%=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
+import Data.NaturalTransformation (type (~>))
 import Data.Symbol (SProxy(..))
+import Data.Unit (Unit)
+import Data.Void (Void)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
