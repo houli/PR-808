@@ -1,9 +1,12 @@
 module Component.Track where
 
 import Audio.Howler (HOWLER)
-import Control.Applicative (pure)
+import Control.Applicative (pure, when)
 import Control.Bind (bind, discard)
 import Control.Monad.Aff (Aff)
+import Control.Monad.Aff.AVar (AVAR)
+import Control.Monad.Aff.Class (class MonadAff)
+import Control.Monad.Eff.Timer (TIMER, clearInterval, setInterval)
 import Data.Array ((!!), (..))
 import Data.Function (const, ($), (<<<))
 import Data.Functor ((<$>))
@@ -22,11 +25,17 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query.EventSource as ES
 
 import Component.Step as Step
 import Sound (Sound(..), allSounds, playSound)
 
 type State = { sound :: Sound, playing :: Boolean, steps :: Int }
+
+beatSource :: forall f m e. MonadAff (avar :: AVAR, timer :: TIMER | e) m => f ES.SubscribeStatus -> ES.EventSource f m
+beatSource = ES.eventSource_' \emit -> do
+  intervalId <- H.liftEff $ setInterval 500 emit
+  pure $ clearInterval intervalId
 
 sound :: forall a b r. Lens { sound :: a | r } { sound :: b | r } a b
 sound = prop (SProxy :: SProxy "sound")
@@ -38,6 +47,7 @@ steps :: forall a b r. Lens { steps :: a | r } { steps :: b | r } a b
 steps = prop (SProxy :: SProxy "steps")
 
 data Query a = PlayPause a
+             | HandleBeat (H.SubscribeStatus -> a)
              | ChangeSound Int a
              | AddStep a
              | RemoveStep a
@@ -47,7 +57,7 @@ type Message = Void
 
 type Slot = Int
 
-track :: forall e. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER | e))
+track :: forall e. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
 track =
   H.parentComponent
     { initialState: const initialState
@@ -60,7 +70,7 @@ track =
   initialState :: State
   initialState = { sound: Cowbell, playing: false, steps: 1 }
 
-  render :: State -> H.ParentHTML Query Step.Query Slot (Aff (howler :: HOWLER | e))
+  render :: forall m. State -> H.ParentHTML Query Step.Query Slot m
   render state =
     HH.div_
       [ HH.h1_
@@ -72,8 +82,8 @@ track =
           [ HE.onClick (HE.input_ PlayPause) ]
           [ HH.text
               if state.playing
-              then "Pause"
-              else "Play"
+                then "Pause"
+                else "Play"
           ]
       , HH.button
           [ HE.onClick (HE.input_ AddStep) ]
@@ -84,19 +94,26 @@ track =
       , HH.span_ (renderStep <$> 1..state.steps)
       ]
 
+  renderStep :: forall m. Slot -> H.ParentHTML Query Step.Query Slot m
   renderStep n = HH.slot n Step.step unit absurd
 
-  eval :: Query ~> H.ParentDSL State Query Step.Query Slot Message (Aff (howler :: HOWLER | e))
+  eval :: Query ~> H.ParentDSL State Query Step.Query Slot Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
   eval = case _ of
     PlayPause next -> do
+      playing' <- use playing
+      when (not playing') do
+        H.subscribe (beatSource $ H.request HandleBeat)
       playing %= not
-      -- maybeStepIsOn <- H.query StepSlot $ H.request Step.IsOn
-      -- case maybeStepIsOn of
-      --   Nothing -> pure unit
-      --   Just stepIsOn -> when stepIsOn do
-      sound' <- use sound
-      H.liftEff $ playSound sound' 1.0
       pure next
+    HandleBeat reply -> do
+      playing' <- use playing
+      if playing'
+        then do
+          sound' <- use sound
+          H.liftEff $ playSound sound' 1.0
+          pure $ reply H.Listening
+        else do
+          pure $ reply H.Done
     ChangeSound index next -> do
       case allSounds !! index of
         Nothing -> pure unit
