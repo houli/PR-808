@@ -45,9 +45,9 @@ step =
     HH.button
       [ HE.onClick (HE.input_ Toggle) ]
       [ HH.text
-        if state.on
-        then "ON"
-        else "OFF"
+          if state.on
+            then "ON"
+            else "OFF"
       ]
 
   eval :: Query ~> H.ComponentDSL State Query Message m

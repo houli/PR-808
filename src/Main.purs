@@ -9,7 +9,7 @@ import Data.Unit (Unit, unit)
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
 
-import Component.Track (track)
+import Component.DrumMachine (drumMachine)
 import Sound (allSounds, playSound)
 
 -- TODO: Figure out how to use a sprite sheet rather than separate files or run in Aff
@@ -21,5 +21,5 @@ main :: Eff (HA.HalogenEffects (howler :: HOWLER, timer :: TIMER)) Unit
 main = do
   HA.runHalogenAff do
     body <- HA.awaitBody
-    runUI track unit body
+    runUI drumMachine unit body
   preloadSounds
