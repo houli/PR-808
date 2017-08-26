@@ -13,7 +13,7 @@ import Data.Foldable (for_)
 import Data.Function (const, ($))
 import Data.Functor ((<$>))
 import Data.HeytingAlgebra (not)
-import Data.Lens (Lens, use, (%=), (+=))
+import Data.Lens (Lens, use, (%=), (+=), (.=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
@@ -33,9 +33,9 @@ import Component.Track as Track
 
 type State = { playing :: Boolean, tracks :: Int, bpm :: Int }
 
-beatSource :: forall f m e. MonadAff (avar :: AVAR, timer :: TIMER | e) m => Int -> f ES.SubscribeStatus -> ES.EventSource f m
-beatSource rate = ES.eventSource_' \emit -> do
-  intervalId <- H.liftEff $ setInterval (1000 / rate) emit
+beatSource :: forall f m eff. MonadAff (avar :: AVAR, timer :: TIMER | eff) m => Int -> f ES.SubscribeStatus -> ES.EventSource f m
+beatSource tempo = ES.eventSource_' \emit -> do
+  intervalId <- H.liftEff $ setInterval (1000 / (tempo / 15)) emit
   pure $ clearInterval intervalId
 
 playing :: forall a b r. Lens { playing :: a | r } { playing :: b | r } a b
@@ -47,7 +47,8 @@ tracks = prop (SProxy :: SProxy "tracks")
 bpm :: forall a b r. Lens { bpm :: a | r } { bpm :: b | r } a b
 bpm = prop (SProxy :: SProxy "bpm")
 
-data Query a = PlayPause a
+data Query a = PlayStop a
+             | PlayLoop (ES.SubscribeStatus -> a)
              | AddTrack a
              | RemoveTrack a
              | IncreaseBPM a
@@ -58,7 +59,7 @@ type Message = Void
 
 type Slot = Int
 
-drumMachine :: forall e. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
+drumMachine :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
 drumMachine =
   H.parentComponent
     { initialState: const initialState
@@ -71,24 +72,24 @@ drumMachine =
   initialState :: State
   initialState = { playing: false, tracks: 1, bpm: 120 }
 
-  render :: State -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
+  render :: State -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
   render state =
     HH.div_
       [ HH.h1_
           [ HH.text "PR-808" ]
       , HH.button
-          [ HE.onClick (HE.input_ IncreaseBPM) ]
-          [ HH.text "UP TEMPO" ]
+          [ HE.onClick (HE.input_ DecreaseBPM) ]
+          [ HH.text "DOWN TEMPO" ]
       , HH.span_
           [ HH.text $ show state.bpm <> " BPM"]
       , HH.button
-          [ HE.onClick (HE.input_ DecreaseBPM) ]
-          [ HH.text "DOWN TEMPO" ]
+          [ HE.onClick (HE.input_ IncreaseBPM) ]
+          [ HH.text "UP TEMPO" ]
       , HH.button
-          [ HE.onClick (HE.input_ PlayPause) ]
+          [ HE.onClick (HE.input_ PlayStop) ]
           [ HH.text
               if state.playing
-                then "Pause"
+                then "Stop"
                 else "Play"
           ]
       , HH.button
@@ -100,21 +101,30 @@ drumMachine =
       , HH.div_ (renderTrack <$> 1..state.tracks)
       ]
 
-  renderTrack :: Slot -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
+  renderTrack :: Slot -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
   renderTrack n = HH.div_ [ HH.slot n Track.track unit absurd ]
 
-  eval :: Query ~> H.ParentDSL State Query Track.Query Slot Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | e))
+  eval :: Query ~> H.ParentDSL State Query Track.Query Slot Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
   eval = case _ of
-    PlayPause next -> do
+    PlayStop next -> do
       playing' <- use playing
       when (not playing') do
         bpm' <- use bpm
-        tracks' <- use tracks
-        for_ (1..tracks') \trackNumber -> do
-          pure unit
-          -- H.subscribe (beatSource bpm' $ H.query trackNumber $ H.request Track.HandleBeat)
+        H.subscribe (beatSource bpm' $ H.request PlayLoop)
       playing %= not
       pure next
+    PlayLoop reply -> do
+      playing' <- use playing
+      tracks' <- use tracks
+      if playing'
+        then do
+          for_ (1..tracks') \trackNumber ->
+            H.query trackNumber $ H.action Track.NextBeat
+          pure $ reply ES.Listening
+        else do
+          for_ (1..tracks') \trackNumber ->
+            H.query trackNumber $ H.action Track.ResetCurrentStep
+          pure $ reply ES.Done
     AddTrack next -> do
      tracks += 1
      pure next
@@ -123,7 +133,9 @@ drumMachine =
      pure next
     IncreaseBPM next -> do
      bpm += 5
+     playing .= false
      pure next
     DecreaseBPM next -> do
      bpm %= \n -> if n <= 5 then 5 else n - 5
+     playing .= false
      pure next

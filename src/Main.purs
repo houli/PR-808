@@ -13,7 +13,7 @@ import Component.DrumMachine (drumMachine)
 import Sound (allSounds, playSound)
 
 -- TODO: Figure out how to use a sprite sheet rather than separate files or run in Aff
-preloadSounds :: forall e. Eff (howler :: HOWLER | e) Unit
+preloadSounds :: forall eff. Eff (howler :: HOWLER | eff) Unit
 preloadSounds = for_ allSounds \sound -> do
   playSound sound 0.0
 

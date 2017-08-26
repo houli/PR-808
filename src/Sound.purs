@@ -37,7 +37,7 @@ allSounds = [Clap, Clave, Cowbell, Crash, HiHatClosed, HiHatOpen, HiTom, Kick, L
 fileName :: Sound -> String
 fileName s = "audio/" <> show s <> ".wav"
 
-playSound :: forall e. Sound -> Number -> Eff (howler :: Howl.HOWLER | e) Unit
+playSound :: forall eff. Sound -> Number -> Eff (howler :: Howl.HOWLER | eff) Unit
 playSound s volume = do
   let file = fileName s
   sound <- Howl.new (Howl.defaultProps { buffer = true, urls = [file], volume = volume })
