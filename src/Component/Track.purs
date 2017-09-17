@@ -17,7 +17,7 @@ import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Symbol (SProxy(..))
 import Data.Unit (Unit, unit)
-import Data.Void (Void, absurd)
+import Data.Void (absurd)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -42,9 +42,11 @@ data Query a = NextBeat a
              | ChangeSound Int a
              | AddStep a
              | RemoveStep a
+             | Remove a
 
 type Input = Unit
-type Message = Void
+
+data Message = NotifyRemove
 
 type Slot = Int
 
@@ -64,7 +66,10 @@ track =
   render :: forall m. State -> H.ParentHTML Query Step.Query Slot m
   render state =
     HH.div_
-      [ HH.select
+      [ HH.button
+          [ HE.onClick (HE.input_ Remove) ]
+          [ HH.text "Remove track" ]
+      , HH.select
           [ HE.onSelectedIndexChange (HE.input ChangeSound), HP.value $ show state.sound ]
           (allSounds
            <#> show
@@ -111,3 +116,6 @@ track =
     RemoveStep next -> do
      steps %= \n -> if n <= 1 then 1 else n - 1
      pure next
+    Remove next -> do
+      H.raise NotifyRemove
+      pure next

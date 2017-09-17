@@ -2,18 +2,19 @@ module Component.DrumMachine where
 
 import Audio.Howler (HOWLER)
 import Control.Applicative (pure, when)
-import Control.Bind (bind, discard)
+import Control.Bind (bind, discard, (>>=))
 import Control.Monad.Aff (Aff)
 import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Aff.Class (class MonadAff)
 import Control.Monad.Eff.Timer (TIMER, clearInterval, setInterval)
-import Data.Array ((..))
+import Data.Array (filter)
+import Data.Eq ((/=))
 import Data.EuclideanRing ((/))
-import Data.Foldable (for_)
+import Data.Foldable (traverse_)
 import Data.Function (const, ($))
 import Data.Functor ((<$>))
 import Data.HeytingAlgebra (not)
-import Data.Lens (Lens, use, (%=), (+=), (.=))
+import Data.Lens (Lens, use, (%=), (+=), (.=), (<>=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
@@ -23,7 +24,7 @@ import Data.Semigroup ((<>))
 import Data.Show (show)
 import Data.Symbol (SProxy(..))
 import Data.Unit (Unit, unit)
-import Data.Void (Void, absurd)
+import Data.Void (Void)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -31,7 +32,9 @@ import Halogen.Query.EventSource as ES
 
 import Component.Track as Track
 
-type State = { playing :: Boolean, tracks :: Int, bpm :: Int }
+type TrackId = Int
+
+type State = { playing :: Boolean, bpm :: Int, tracks :: Array TrackId, nextTrackId :: Int }
 
 beatSource :: forall f m eff. MonadAff (avar :: AVAR, timer :: TIMER | eff) m => Int -> f ES.SubscribeStatus -> ES.EventSource f m
 beatSource tempo = ES.eventSource_' \emit -> do
@@ -41,23 +44,26 @@ beatSource tempo = ES.eventSource_' \emit -> do
 playing :: forall a b r. Lens { playing :: a | r } { playing :: b | r } a b
 playing = prop (SProxy :: SProxy "playing")
 
+bpm :: forall a b r. Lens { bpm :: a | r } { bpm :: b | r } a b
+bpm = prop (SProxy :: SProxy "bpm")
+
 tracks :: forall a b r. Lens { tracks :: a | r } { tracks :: b | r } a b
 tracks = prop (SProxy :: SProxy "tracks")
 
-bpm :: forall a b r. Lens { bpm :: a | r } { bpm :: b | r } a b
-bpm = prop (SProxy :: SProxy "bpm")
+nextTrackId :: forall a b r. Lens { nextTrackId :: a | r } { nextTrackId :: b | r } a b
+nextTrackId = prop (SProxy :: SProxy "nextTrackId")
 
 data Query a = PlayStop a
              | PlayLoop (ES.SubscribeStatus -> a)
              | AddTrack a
-             | RemoveTrack a
              | IncreaseBPM a
              | DecreaseBPM a
+             | HandleTrackMessage TrackId Track.Message a
 
 type Input = Unit
 type Message = Void
 
-type Slot = Int
+type Slot = TrackId
 
 drumMachine :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
 drumMachine =
@@ -70,7 +76,7 @@ drumMachine =
   where
 
   initialState :: State
-  initialState = { playing: false, tracks: 1, bpm: 120 }
+  initialState = { playing: false, bpm: 120, tracks: [0], nextTrackId: 1 }
 
   render :: State -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
   render state =
@@ -94,15 +100,12 @@ drumMachine =
           ]
       , HH.button
           [ HE.onClick (HE.input_ AddTrack) ]
-          [ HH.text "+" ]
-      , HH.button
-          [ HE.onClick (HE.input_ RemoveTrack) ]
-          [ HH.text "-" ]
-      , HH.div_ (renderTrack <$> 1..state.tracks)
+          [ HH.text "Add Track" ]
+      , HH.div_ (renderTrack <$> state.tracks)
       ]
 
   renderTrack :: Slot -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
-  renderTrack n = HH.div_ [ HH.slot n Track.track unit absurd ]
+  renderTrack trackId = HH.div_ [ HH.slot trackId Track.track unit $ HE.input (HandleTrackMessage trackId) ]
 
   eval :: Query ~> H.ParentDSL State Query Track.Query Slot Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
   eval = case _ of
@@ -115,21 +118,19 @@ drumMachine =
       pure next
     PlayLoop reply -> do
       playing' <- use playing
-      tracks' <- use tracks
       if playing'
         then do
-          for_ (1..tracks') \trackNumber ->
-            H.query trackNumber $ H.action Track.NextBeat
+          use tracks >>= traverse_ \trackId ->
+            H.query trackId $ H.action Track.NextBeat
           pure $ reply ES.Listening
         else do
-          for_ (1..tracks') \trackNumber ->
-            H.query trackNumber $ H.action Track.ResetCurrentStep
+          resetAllTracks
           pure $ reply ES.Done
     AddTrack next -> do
-     tracks += 1
-     pure next
-    RemoveTrack next -> do
-     tracks %= \n -> if n <= 1 then 1 else n - 1
+     nextTrackId' <- use nextTrackId
+     nextTrackId += 1
+     tracks <>= [nextTrackId']
+     resetAllTracks
      pure next
     IncreaseBPM next -> do
      bpm += 5
@@ -139,3 +140,16 @@ drumMachine =
      bpm %= \n -> if n <= 5 then 5 else n - 5
      playing .= false
      pure next
+    HandleTrackMessage trackId msg next -> do
+     case msg of
+       Track.NotifyRemove -> do
+         tracks %= removeTrack trackId
+         resetAllTracks
+     pure next
+
+resetAllTracks :: forall m. H.ParentDSL State Query Track.Query Slot Message m Unit
+resetAllTracks = use tracks >>= traverse_ \trackId ->
+  H.query trackId $ H.action Track.ResetCurrentStep
+
+removeTrack :: TrackId -> Array TrackId -> Array TrackId
+removeTrack trackId tracks = filter (_ /= trackId) tracks
