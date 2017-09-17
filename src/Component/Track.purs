@@ -5,14 +5,13 @@ import Control.Applicative (pure, when)
 import Control.Bind (bind, discard)
 import Control.Monad.Aff (Aff)
 import Data.Array ((!!), (..))
-import Data.Eq ((==))
-import Data.Function (const, ($), (<<<))
-import Data.Functor ((<$>))
+import Data.Function (const, ($), (>>>))
+import Data.Functor ((<#>), (<$>))
 import Data.Lens (Lens, use, (%=), (+=), (.=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
-import Data.Ord ((<=))
+import Data.Ord ((<=), (>=))
 import Data.Ring ((-))
 import Data.Semiring ((+))
 import Data.Show (show)
@@ -60,14 +59,19 @@ track =
   where
 
   initialState :: State
-  initialState = { sound: Cowbell, steps: 8, currentStep: 1 }
+  initialState = { sound: Cowbell, steps: 16, currentStep: 1 }
 
   render :: forall m. State -> H.ParentHTML Query Step.Query Slot m
   render state =
     HH.div_
       [ HH.select
           [ HE.onSelectedIndexChange (HE.input ChangeSound), HP.value $ show state.sound ]
-          (HH.option_ <<< pure <<< HH.text <<< show <$> allSounds)
+          (allSounds
+           <#> show
+           >>> HH.text
+           >>> pure
+           >>> HH.option_
+          )
       , HH.button
           [ HE.onClick (HE.input_ AddStep) ]
           [ HH.text "+" ]
@@ -91,7 +95,7 @@ track =
           sound' <- use sound
           H.liftEff $ playSound sound' 1.0
       numSteps <- use steps
-      currentStep %= \current -> if current == numSteps then 1 else current + 1
+      currentStep %= \current -> if current >= numSteps then 1 else current + 1
       pure next
     ResetCurrentStep next -> do
       currentStep .= 1
