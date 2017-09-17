@@ -282,8 +282,8 @@ boom@2.x.x:
     hoek "2.x.x"
 
 bower@^1.8.0:
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/bower/-/bower-1.8.0.tgz#55dbebef0ad9155382d9e9d3e497c1372345b44a"
+  version "1.8.2"
+  resolved "https://registry.yarnpkg.com/bower/-/bower-1.8.2.tgz#adf53529c8d4af02ef24fb8d5341c1419d33e2f7"
 
 brace-expansion@^1.0.0, brace-expansion@^1.1.7:
   version "1.1.8"
@@ -3098,8 +3098,8 @@ typedarray@^0.0.6, typedarray@~0.0.5:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
 uglify-js@^3.0.27:
-  version "3.0.27"
-  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.0.27.tgz#a97db8c8ba6b9dba4e2f88d86aa9548fa6320034"
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.1.1.tgz#e7144307281a1bc38a9a20715090b546c9f44791"
   dependencies:
     commander "~2.11.0"
     source-map "~0.5.1"
