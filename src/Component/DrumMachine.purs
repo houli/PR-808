@@ -34,7 +34,7 @@ import Component.Track as Track
 
 type TrackId = Int
 
-type State = { playing :: Boolean, bpm :: Int, tracks :: Array TrackId, nextTrackId :: Int }
+type State = { playing :: Boolean, bpm :: Int, tracks :: Array TrackId, nextTrackId :: TrackId }
 
 beatSource :: forall f m eff. MonadAff (avar :: AVAR, timer :: TIMER | eff) m => Int -> f ES.SubscribeStatus -> ES.EventSource f m
 beatSource tempo = ES.eventSource_' \emit -> do
@@ -152,4 +152,4 @@ resetAllTracks = use tracks >>= traverse_ \trackId ->
   H.query trackId $ H.action Track.ResetCurrentStep
 
 removeTrack :: TrackId -> Array TrackId -> Array TrackId
-removeTrack trackId tracks = filter (_ /= trackId) tracks
+removeTrack trackId tracksArray = filter (_ /= trackId) tracksArray
