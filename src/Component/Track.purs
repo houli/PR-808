@@ -7,6 +7,7 @@ import Control.Monad.Aff (Aff)
 import Data.Array ((!!), (..))
 import Data.Function (const, ($), (>>>))
 import Data.Functor ((<#>), (<$>))
+import Data.HeytingAlgebra (not, (&&))
 import Data.Lens (Lens, use, (%=), (+=), (.=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
@@ -26,7 +27,7 @@ import Halogen.HTML.Properties as HP
 import Component.Step as Step
 import Sound (Sound(Cowbell), allSounds, playSound)
 
-type State = { sound :: Sound, steps :: Int, currentStep :: Int }
+type State = { sound :: Sound, steps :: Int, currentStep :: Int, muted :: Boolean }
 
 sound :: forall a b r. Lens { sound :: a | r } { sound :: b | r } a b
 sound = prop (SProxy :: SProxy "sound")
@@ -37,12 +38,16 @@ steps = prop (SProxy :: SProxy "steps")
 currentStep :: forall a b r. Lens { currentStep :: a | r } { currentStep :: b | r } a b
 currentStep = prop (SProxy :: SProxy "currentStep")
 
+muted :: forall a b r. Lens { muted :: a | r } { muted :: b | r } a b
+muted = prop (SProxy :: SProxy "muted")
+
 data Query a = NextBeat a
              | ResetCurrentStep a
              | ChangeSound Int a
              | AddStep a
              | RemoveStep a
              | Remove a
+             | ToggleMute a
 
 type Input = Unit
 
@@ -61,7 +66,7 @@ track =
   where
 
   initialState :: State
-  initialState = { sound: Cowbell, steps: 16, currentStep: 1 }
+  initialState = { sound: Cowbell, steps: 16, currentStep: 1, muted: false }
 
   render :: forall m. State -> H.ParentHTML Query Step.Query Slot m
   render state =
@@ -69,6 +74,13 @@ track =
       [ HH.button
           [ HE.onClick (HE.input_ Remove) ]
           [ HH.text "Remove track" ]
+      , HH.button
+          [ HE.onClick (HE.input_ ToggleMute) ]
+          [ HH.text
+              if state.muted
+                then "Unmute track"
+                else "Mute track"
+          ]
       , HH.select
           [ HE.onSelectedIndexChange (HE.input ChangeSound), HP.value $ show state.sound ]
           (allSounds
@@ -94,9 +106,10 @@ track =
     NextBeat next -> do
       currentStep' <- use currentStep
       maybeStepIsOn <- H.query currentStep' $ H.request Step.IsOn
+      muted' <- use muted
       case maybeStepIsOn of
         Nothing -> pure unit
-        Just stepIsOn -> when stepIsOn do
+        Just stepIsOn -> when (stepIsOn && not muted') do
           sound' <- use sound
           H.liftEff $ playSound sound' 1.0
       numSteps <- use steps
@@ -118,4 +131,7 @@ track =
      pure next
     Remove next -> do
       H.raise NotifyRemove
+      pure next
+    ToggleMute next -> do
+      muted %= not
       pure next
