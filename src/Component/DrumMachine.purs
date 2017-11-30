@@ -18,7 +18,6 @@ import Data.Lens (Lens, use, (%=), (+=), (.=), (<>=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
-import Data.Ord ((<=))
 import Data.Ring ((-))
 import Data.Semigroup ((<>))
 import Data.Show (show)
@@ -31,6 +30,7 @@ import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 
 import Component.Track as Track
+import Util (maxInt)
 
 type TrackId = Int
 
@@ -137,7 +137,7 @@ drumMachine =
      playing .= false
      pure next
     DecreaseBPM next -> do
-     bpm %= \n -> if n <= 5 then 5 else n - 5
+     bpm %= \n -> maxInt 5 (n - 5)
      playing .= false
      pure next
     HandleTrackMessage trackId msg next -> do

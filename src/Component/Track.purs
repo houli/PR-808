@@ -13,7 +13,7 @@ import Data.Lens (Lens, use, (%=), (+=), (.=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
-import Data.Ord ((<=), (>=))
+import Data.Ord ((>=))
 import Data.Ring ((-))
 import Data.Semiring ((+))
 import Data.Show (show)
@@ -26,6 +26,7 @@ import Halogen.HTML.Properties as HP
 
 import Component.Step as Step
 import Sound (Sound(Cowbell), allSounds, playSound)
+import Util (maxInt)
 
 type State = { sound :: Sound, steps :: Int, currentStep :: Int, muted :: Boolean }
 
@@ -126,7 +127,7 @@ track =
      steps += 1
      pure next
     RemoveStep next -> do
-     steps %= \n -> if n <= 1 then 1 else n - 1
+     steps %= \n -> maxInt 1 (n - 1)
      pure next
     Remove next -> do
       H.raise NotifyRemove
