@@ -2,8 +2,9 @@ module Component.Track where
 
 import Audio.Howler (HOWLER)
 import Control.Applicative (pure, when)
-import Control.Bind (bind, discard)
+import Control.Bind (bind, discard, (=<<))
 import Control.Monad.Aff (Aff)
+import Control.Monad.Aff.Class (class MonadAff)
 import Data.Array ((!!), (..))
 import Data.Function (const, ($), (>>>))
 import Data.Functor ((<#>), (<$>))
@@ -18,7 +19,6 @@ import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Symbol (SProxy(..))
 import Data.Unit (Unit, unit)
-import Data.Void (absurd)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -48,6 +48,7 @@ data Query a = NextBeat a
              | RemoveStep a
              | Remove a
              | ToggleMute a
+             | HandleStepMessage Slot Step.Message a
 
 type Input = Unit
 
@@ -99,7 +100,7 @@ track =
       ]
 
   renderStep :: forall m. Slot -> H.ParentHTML Query Step.Query Slot m
-  renderStep n = HH.slot n Step.step unit absurd
+  renderStep n = HH.slot n Step.step unit $ HE.input (HandleStepMessage n)
 
   eval :: Query ~> H.ParentDSL State Query Step.Query Slot Message (Aff (howler :: HOWLER | eff))
   eval = case _ of
@@ -109,9 +110,7 @@ track =
       muted' <- use muted
       case maybeStepIsOn of
         Nothing -> pure unit
-        Just stepIsOn -> when (stepIsOn && not muted') do
-          sound' <- use sound
-          H.liftEff $ playSound sound' 1.0
+        Just stepIsOn -> when (stepIsOn && not muted') $ playSound' =<< use sound
       numSteps <- use steps
       currentStep %= \current -> if current >= numSteps then 1 else current + 1
       pure next
@@ -135,3 +134,13 @@ track =
     ToggleMute next -> do
       muted %= not
       pure next
+    HandleStepMessage _ msg next -> do
+      case msg of
+        Step.NotifyToggled newState -> do
+          muted' <- use muted
+          when (not muted' && newState) $ playSound' =<< use sound
+      pure next
+
+-- TODO: Possibly refactor to also use MonadState
+playSound' :: forall m eff. MonadAff (howler :: HOWLER | eff) m => Sound -> m Unit
+playSound' sound' = H.liftEff $ playSound sound' 1.0

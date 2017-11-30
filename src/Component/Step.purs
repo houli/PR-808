@@ -1,17 +1,16 @@
 module Component.Step where
 
 import Control.Applicative (pure)
-import Control.Bind (discard)
-import Data.Function (const)
+import Control.Bind (bind, discard)
+import Data.Function (const, ($))
 import Data.Functor ((<$>))
 import Data.HeytingAlgebra (not)
-import Data.Lens (Lens, use, (%=))
+import Data.Lens (Lens, use, (.=))
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
 import Data.Symbol (SProxy(..))
 import Data.Unit (Unit)
-import Data.Void (Void)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -25,7 +24,7 @@ data Query a = Toggle a
              | IsOn (Boolean -> a)
 
 type Input = Unit
-type Message = Void
+data Message = NotifyToggled Boolean
 
 step :: forall m. H.Component HH.HTML Query Input Message m
 step =
@@ -53,7 +52,10 @@ step =
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval = case _ of
     Toggle next -> do
-      on %= not
+      on' <- use on
+      let newState = not on'
+      on .= newState
+      H.raise $ NotifyToggled newState
       pure next
     IsOn reply -> do
       reply <$> use on
