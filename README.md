@@ -1,4 +1,4 @@
 # PR-808 Drum Machine
 `yarn && yarn start`
 
-[Try it out!](https://pr-808.surge.sh)
+[Try it out!](https://pr-808.surge.sh) (CSS styling is very much TODO)
