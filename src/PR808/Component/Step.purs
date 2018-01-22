@@ -1,26 +1,23 @@
-module Component.Step where
+module PR808.Component.Step where
 
 import Control.Applicative (pure)
 import Control.Bind (bind, discard)
 import Data.Function (const, ($))
 import Data.Functor ((<$>))
 import Data.HeytingAlgebra (not)
-import Data.Lens (Lens, use, (.=))
-import Data.Lens.Record (prop)
+import Data.Lens (use, (.=))
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
-import Data.Symbol (SProxy(..))
 import Data.Unit (Unit)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 
-type State = { on :: Boolean }
-
-on :: forall a b r. Lens { on :: a | r } { on :: b | r } a b
-on = prop (SProxy :: SProxy "on")
+import PR808.Lenses (_on)
+import PR808.Types (StepState)
 
 data Query a = Toggle a
+             | Set Boolean a
              | IsOn (Boolean -> a)
 
 type Input = Unit
@@ -36,10 +33,10 @@ step =
     }
   where
 
-  initialState :: State
+  initialState :: StepState
   initialState = { on: false }
 
-  render :: State -> H.ComponentHTML Query
+  render :: StepState -> H.ComponentHTML Query
   render state =
     HH.button
       [ HE.onClick (HE.input_ Toggle) ]
@@ -49,13 +46,17 @@ step =
             else "OFF"
       ]
 
-  eval :: Query ~> H.ComponentDSL State Query Message m
+  eval :: Query ~> H.ComponentDSL StepState Query Message m
   eval = case _ of
     Toggle next -> do
-      on' <- use on
-      let newState = not on'
-      on .= newState
+      newState <- not <$> use _on
+      _on .= newState
       H.raise $ NotifyToggled newState
       pure next
+
+    Set newState next -> do
+      _on .= newState
+      pure next
+
     IsOn reply -> do
-      reply <$> use on
+      reply <$> use _on

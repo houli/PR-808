@@ -1,4 +1,4 @@
-module Component.Track where
+module PR808.Component.Track where
 
 import Audio.Howler (HOWLER)
 import Control.Applicative (pure, when)
@@ -6,41 +6,29 @@ import Control.Bind (bind, discard, (=<<))
 import Control.Monad.Aff (Aff)
 import Control.Monad.Aff.Class (class MonadAff)
 import Data.Array ((!!), (..))
+import Data.Foldable (length)
+import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function (const, ($), (>>>))
 import Data.Functor ((<#>), (<$>))
 import Data.HeytingAlgebra (not, (&&))
-import Data.Lens (Lens, use, (%=), (+=), (.=))
-import Data.Lens.Record (prop)
+import Data.Lens (use, (%=), (+=), (.=))
 import Data.Maybe (Maybe(..))
 import Data.NaturalTransformation (type (~>))
 import Data.Ord ((>=))
 import Data.Ring ((-))
 import Data.Semiring ((+))
 import Data.Show (show)
-import Data.Symbol (SProxy(..))
 import Data.Unit (Unit, unit)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
-import Component.Step as Step
-import Sound (Sound(Cowbell), allSounds, playSound)
-import Util (maxInt)
-
-type State = { sound :: Sound, steps :: Int, currentStep :: Int, muted :: Boolean }
-
-sound :: forall a b r. Lens { sound :: a | r } { sound :: b | r } a b
-sound = prop (SProxy :: SProxy "sound")
-
-steps :: forall a b r. Lens { steps :: a | r } { steps :: b | r } a b
-steps = prop (SProxy :: SProxy "steps")
-
-currentStep :: forall a b r. Lens { currentStep :: a | r } { currentStep :: b | r } a b
-currentStep = prop (SProxy :: SProxy "currentStep")
-
-muted :: forall a b r. Lens { muted :: a | r } { muted :: b | r } a b
-muted = prop (SProxy :: SProxy "muted")
+import PR808.Component.Step as Step
+import PR808.Lenses (_currentStep, _muted, _sound, _steps)
+import PR808.Sound (allSounds, playSound)
+import PR808.Types (PresetTrack, Sound(Cowbell), TrackState)
+import PR808.Util (maxInt)
 
 data Query a = NextBeat a
              | ResetCurrentStep a
@@ -49,6 +37,7 @@ data Query a = NextBeat a
              | RemoveStep a
              | Remove a
              | ToggleMute a
+             | PresetTrackSetup PresetTrack a
              | HandleStepMessage Slot Step.Message a
 
 type Input = Unit
@@ -57,7 +46,7 @@ data Message = NotifyRemove
 
 type Slot = Int
 
-track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER | eff))
+track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER  | eff))
 track =
   H.parentComponent
     { initialState: const initialState
@@ -67,10 +56,10 @@ track =
     }
   where
 
-  initialState :: State
+  initialState :: TrackState
   initialState = { sound: Cowbell, steps: 16, currentStep: 1, muted: false }
 
-  render :: forall m. State -> H.ParentHTML Query Step.Query Slot m
+  render :: forall m. TrackState -> H.ParentHTML Query Step.Query Slot m
   render state =
     HH.div_
       [ HH.button
@@ -86,10 +75,10 @@ track =
       , HH.select
           [ HE.onSelectedIndexChange (HE.input ChangeSound), HP.value $ show state.sound ]
           (allSounds
-           <#> show
-           >>> HH.text
-           >>> pure
-           >>> HH.option_
+            <#> show
+            >>> HH.text
+            >>> pure
+            >>> HH.option_
           )
       , HH.button
           [ HE.onClick (HE.input_ AddStep) ]
@@ -103,45 +92,61 @@ track =
   renderStep :: forall m. Slot -> H.ParentHTML Query Step.Query Slot m
   renderStep n = HH.slot n Step.step unit $ HE.input (HandleStepMessage n)
 
-  eval :: Query ~> H.ParentDSL State Query Step.Query Slot Message (Aff (howler :: HOWLER | eff))
+  eval :: Query ~> H.ParentDSL TrackState Query Step.Query Slot Message (Aff (howler :: HOWLER | eff))
   eval = case _ of
     NextBeat next -> do
-      currentStep' <- use currentStep
-      maybeStepIsOn <- H.query currentStep' $ H.request Step.IsOn
-      muted' <- use muted
+      currentStep <- use _currentStep
+      maybeStepIsOn <- H.query currentStep $ H.request Step.IsOn
+      muted <- use _muted
       case maybeStepIsOn of
         Nothing -> pure unit
-        Just stepIsOn -> when (stepIsOn && not muted') $ playSound' =<< use sound
-      numSteps <- use steps
-      currentStep %= \current -> if current >= numSteps then 1 else current + 1
+        Just stepIsOn -> when (stepIsOn && not muted) $ playSound' =<< use _sound
+      numSteps <- use _steps
+      _currentStep %= \current -> if current >= numSteps then 1 else current + 1
       pure next
+
     ResetCurrentStep next -> do
-      currentStep .= 1
+      _currentStep .= 1
       pure next
+
     ChangeSound index next -> do
       case allSounds !! index of
         Nothing -> pure unit
-        Just newSound -> sound .= newSound
+        Just newSound -> _sound .= newSound
       pure next
+
     AddStep next -> do
-     steps += 1
-     pure next
+      _steps += 1
+      pure next
+
     RemoveStep next -> do
-     steps %= \n -> maxInt 1 (n - 1)
-     pure next
+      _steps %= \n -> maxInt 1 (n - 1)
+      pure next
+
     Remove next -> do
       H.raise NotifyRemove
       pure next
+
     ToggleMute next -> do
-      muted %= not
+      _muted %= not
       pure next
+
+    PresetTrackSetup presetTrack next -> do
+      _sound .= presetTrack.sound
+      _steps .= length presetTrack.steps
+      _currentStep .= 0
+      _muted .= false
+      forWithIndex_ presetTrack.steps \i stepState ->
+        H.query (i + 1) $ H.action $ Step.Set stepState
+      pure next
+
     HandleStepMessage _ msg next -> do
       case msg of
         Step.NotifyToggled newState -> do
-          muted' <- use muted
-          when (not muted' && newState) $ playSound' =<< use sound
+          muted <- use _muted
+          when (not muted && newState) $ playSound' =<< use _sound
       pure next
 
 -- TODO: Possibly refactor to also use MonadState
 playSound' :: forall m eff. MonadAff (howler :: HOWLER | eff) m => Sound -> m Unit
-playSound' sound' = H.liftEff $ playSound sound' 1.0
+playSound' sound = H.liftEff $ playSound sound 1.0

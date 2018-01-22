@@ -1,4 +1,4 @@
-module Util
+module PR808.Util
   ( maxInt
   ) where
 
