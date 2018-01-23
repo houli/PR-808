@@ -46,7 +46,7 @@ data Message = NotifyRemove
 
 type Slot = Int
 
-track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER  | eff))
+track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER | eff))
 track =
   H.parentComponent
     { initialState: const initialState
