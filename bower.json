@@ -14,13 +14,13 @@
     "output"
   ],
   "dependencies": {
-    "purescript-aff": "^4.0.1",
-    "purescript-arrays": "^4.2.1",
+    "purescript-aff": "^4.0.2",
+    "purescript-arrays": "^4.2.2",
     "purescript-console": "^3.0.0",
     "purescript-coroutines": "^4.0.0",
-    "purescript-foldable-traversable": "^3.6.1",
+    "purescript-foldable-traversable": "^3.7.1",
     "purescript-generics-rep": "^5.4.0",
-    "purescript-halogen": "^3.0.1",
+    "purescript-halogen": "^3.1.1",
     "purescript-howler": "^0.4.0",
     "purescript-integers": "^3.2.0",
     "purescript-js-timers": "^3.0.0",
