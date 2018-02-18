@@ -1,6 +1,6 @@
 module PR808.Component.DrumMachine where
 
-import Audio.Howler (HOWLER)
+import Audio.Howl (HOWL)
 import Control.Applicative (pure, when)
 import Control.Bind (bind, discard, (>>=))
 import Control.Monad.Aff (Aff)
@@ -51,7 +51,7 @@ type Message = Void
 
 type Slot = TrackId
 
-drumMachine :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
+drumMachine :: forall eff. H.Component HH.HTML Query Input Message (Aff (howl :: HOWL, avar :: AVAR, timer :: TIMER | eff))
 drumMachine =
   H.parentComponent
     { initialState: const initialState
@@ -64,7 +64,7 @@ drumMachine =
   initialState :: DrumMachineState
   initialState = { playing: false, bpm: 120, tracks: [], nextTrackId: 0 }
 
-  render :: DrumMachineState -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
+  render :: DrumMachineState -> H.ParentHTML Query Track.Query Slot (Aff (howl :: HOWL, avar :: AVAR, timer :: TIMER | eff))
   render state =
     HH.div_
       [ HH.h1_
@@ -90,10 +90,10 @@ drumMachine =
       , HH.div_ (renderTrack <$> state.tracks)
       ]
 
-  renderTrack :: Slot -> H.ParentHTML Query Track.Query Slot (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
+  renderTrack :: Slot -> H.ParentHTML Query Track.Query Slot (Aff (howl :: HOWL, avar :: AVAR, timer :: TIMER | eff))
   renderTrack trackId = HH.div_ [ HH.slot trackId Track.track unit $ HE.input (HandleTrackMessage trackId) ]
 
-  eval :: Query ~> H.ParentDSL DrumMachineState Query Track.Query Slot Message (Aff (howler :: HOWLER, avar :: AVAR, timer :: TIMER | eff))
+  eval :: Query ~> H.ParentDSL DrumMachineState Query Track.Query Slot Message (Aff (howl :: HOWL, avar :: AVAR, timer :: TIMER | eff))
   eval = case _ of
     PlayStop next -> do
       shouldPlay <- not <$> use _playing

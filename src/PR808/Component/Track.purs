@@ -1,6 +1,6 @@
 module PR808.Component.Track where
 
-import Audio.Howler (HOWLER)
+import Audio.Howl (HOWL)
 import Control.Applicative (pure, when)
 import Control.Bind (bind, discard, (=<<))
 import Control.Monad.Aff (Aff)
@@ -46,7 +46,7 @@ data Message = NotifyRemove
 
 type Slot = Int
 
-track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howler :: HOWLER | eff))
+track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howl :: HOWL | eff))
 track =
   H.parentComponent
     { initialState: const initialState
@@ -92,7 +92,7 @@ track =
   renderStep :: forall m. Slot -> H.ParentHTML Query Step.Query Slot m
   renderStep n = HH.slot n Step.step unit $ HE.input (HandleStepMessage n)
 
-  eval :: Query ~> H.ParentDSL TrackState Query Step.Query Slot Message (Aff (howler :: HOWLER | eff))
+  eval :: Query ~> H.ParentDSL TrackState Query Step.Query Slot Message (Aff (howl :: HOWL | eff))
   eval = case _ of
     NextBeat next -> do
       currentStep <- use _currentStep
@@ -148,5 +148,5 @@ track =
       pure next
 
 -- TODO: Possibly refactor to also use MonadState
-playSound' :: forall m eff. MonadAff (howler :: HOWLER | eff) m => Sound -> m Unit
+playSound' :: forall m eff. MonadAff (howl :: HOWL | eff) m => Sound -> m Unit
 playSound' sound = H.liftEff $ playSound sound 1.0

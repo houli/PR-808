@@ -8,13 +8,12 @@
   "private": true,
   "scripts": {
     "postinstall": "bower install",
-    "start": "pulp server",
     "repl": "pulp repl",
     "test": "pulp test",
     "test:watch": "pulp -w test",
-    "build": "pulp build --to app.js",
-    "build:watch": "pulp -w build --to app.js",
-    "build:prod": "pulp build -O | uglifyjs -c -m -o app.js",
+    "build": "pulp browserify --to app.js",
+    "build:watch": "pulp -w browserify --to app.js",
+    "build:prod": "pulp browserify -O | uglifyjs -c -m -o app.js",
     "deploy": "npm run build:prod && surge . pr-808.surge.sh"
   },
   "devDependencies": {
@@ -24,5 +23,8 @@
     "purescript-psa": "^0.6.0",
     "surge": "^0.19.0",
     "uglify-js": "^3.3.8"
+  },
+  "dependencies": {
+    "howler": "^2.0.9"
   }
 }
