@@ -37,7 +37,7 @@ lotusFlower =
       , steps: [false, false, false, false, false, false, true, false, false, false, false, false, true, false, false, true]
       }
     , { sound: HiHatClosed
-      , steps: [true, false, true, false]
+      , steps: [true, false]
       }
     ]
   }
