@@ -14,23 +14,23 @@
     "output"
   ],
   "dependencies": {
-    "purescript-aff": "^4.0.2",
-    "purescript-arrays": "^4.2.2",
-    "purescript-console": "^3.0.0",
-    "purescript-coroutines": "^4.0.0",
-    "purescript-foldable-traversable": "^3.7.1",
-    "purescript-generics-rep": "^5.4.0",
-    "purescript-halogen": "^3.1.2",
-    "purescript-howl": "^0.1.0",
-    "purescript-integers": "^3.2.0",
-    "purescript-js-timers": "^3.0.0",
-    "purescript-math": "^2.1.0",
-    "purescript-nonempty": "^4.1.1",
-    "purescript-prelude": "^3.1.1",
-    "purescript-profunctor-lenses": "^3.8.0",
-    "purescript-symbols": "^3.0.0"
+    "purescript-aff": "^5.0.0",
+    "purescript-arrays": "^5.0.0",
+    "purescript-console": "^4.1.0",
+    "purescript-coroutines": "^5.0.0",
+    "purescript-foldable-traversable": "^4.0.0",
+    "purescript-generics-rep": "^6.0.0",
+    "purescript-halogen": "^4.0.0",
+    "purescript-howl": "^0.2.0",
+    "purescript-integers": "^4.0.0",
+    "purescript-js-timers": "^4.0.0",
+    "purescript-math": "^2.1.1",
+    "purescript-nonempty": "^5.0.0",
+    "purescript-parallel": "^4.0.0",
+    "purescript-prelude": "^4.0.0",
+    "purescript-profunctor-lenses": "^4.0.0"
   },
   "devDependencies": {
-    "purescript-psci-support": "^3.0.0"
+    "purescript-psci-support": "^4.0.0"
   }
 }

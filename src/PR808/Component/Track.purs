@@ -1,10 +1,7 @@
 module PR808.Component.Track where
 
-import Audio.Howl (HOWL)
 import Control.Applicative (pure, when)
 import Control.Bind (bind, discard, (=<<))
-import Control.Monad.Aff (Aff)
-import Control.Monad.Aff.Class (class MonadAff)
 import Data.Array ((!!), (..))
 import Data.Foldable (length)
 import Data.FoldableWithIndex (forWithIndex_)
@@ -19,6 +16,9 @@ import Data.Ring ((-))
 import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Unit (Unit, unit)
+import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
+import Effect.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -46,7 +46,7 @@ data Message = NotifyRemove
 
 type Slot = Int
 
-track :: forall eff. H.Component HH.HTML Query Input Message (Aff (howl :: HOWL | eff))
+track :: H.Component HH.HTML Query Input Message Aff
 track =
   H.parentComponent
     { initialState: const initialState
@@ -92,7 +92,7 @@ track =
   renderStep :: forall m. Slot -> H.ParentHTML Query Step.Query Slot m
   renderStep n = HH.slot n Step.step unit $ HE.input (HandleStepMessage n)
 
-  eval :: Query ~> H.ParentDSL TrackState Query Step.Query Slot Message (Aff (howl :: HOWL | eff))
+  eval :: Query ~> H.ParentDSL TrackState Query Step.Query Slot Message Aff
   eval = case _ of
     NextBeat next -> do
       currentStep <- use _currentStep
@@ -110,9 +110,11 @@ track =
       pure next
 
     ChangeSound index next -> do
+      H.liftEffect $ logShow index
       case allSounds !! index of
         Nothing -> pure unit
-        Just newSound -> _sound .= newSound
+        Just newSound -> do
+          _sound .= newSound
       pure next
 
     AddStep next -> do
@@ -148,5 +150,5 @@ track =
       pure next
 
 -- TODO: Possibly refactor to also use MonadState
-playSound' :: forall m eff. MonadAff (howl :: HOWL | eff) m => Sound -> m Unit
-playSound' sound = H.liftEff $ playSound sound 1.0
+playSound' :: forall m. MonadAff m => Sound -> m Unit
+playSound' sound = H.liftEffect $ playSound sound 1.0
