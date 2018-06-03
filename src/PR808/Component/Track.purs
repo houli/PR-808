@@ -18,7 +18,6 @@ import Data.Show (show)
 import Data.Unit (Unit, unit)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -110,11 +109,9 @@ track =
       pure next
 
     ChangeSound index next -> do
-      H.liftEffect $ logShow index
       case allSounds !! index of
         Nothing -> pure unit
-        Just newSound -> do
-          _sound .= newSound
+        Just newSound -> _sound .= newSound
       pure next
 
     AddStep next -> do
